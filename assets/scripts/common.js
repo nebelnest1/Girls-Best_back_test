@@ -1,4 +1,4 @@
-/* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid) */
+/* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid) + BACK ALT QUEUE */
 
 (() => {
   "use strict";
@@ -159,6 +159,24 @@
     } catch (e) { err("Back pushState error:", e); }
   };
 
+  // ✅ NEW: alternating back queue A/B
+  const pushBackStatesAlternate = (urlA, urlB, count) => {
+    try {
+      const n = Math.max(0, parseInt(count, 10) || 0);
+      const originalUrl = window.location.href;
+
+      for (let i = 0; i < n; i++) {
+        const u = (i % 2 === 0) ? urlA : (urlB || urlA);
+        window.history.pushState(null, "Please wait...", u);
+      }
+
+      window.history.pushState(null, document.title, originalUrl);
+    } catch (e) {
+      err("Back pushState ALT error:", e);
+      pushBackStates(urlA, count);
+    }
+  };
+
   const getDefaultBackHtmlUrl = () => {
     const { origin, pathname } = window.location;
     let dir = pathname.replace(/\/(index|back)\.html$/i, "");
@@ -167,17 +185,46 @@
     return `${origin}${dir}/back.html`;
   };
 
+  // ✅ NEW: helper builder for back.html url with chosen zoneId
+  const buildBackHtmlUrl = (cfg, zoneId, overrideUrl) => {
+    const b = cfg?.back?.currentTab;
+    const pageUrl = cfg?.back?.pageUrl || getDefaultBackHtmlUrl();
+    const page = new URL(pageUrl, window.location.href);
+
+    const qs = buildExitQSFast({ zoneId });
+
+    if (overrideUrl) {
+      qs.set("url", String(overrideUrl));
+    } else {
+      qs.set("z", String(zoneId));
+      qs.set("domain", String(b?.domain || cfg?.domain || ""));
+    }
+
+    page.search = qs.toString();
+    return page.toString();
+  };
+
+  // ✅ UPDATED: initBackFast() теперь чередует back_zoneId и tabUnderClick_zoneId
   const initBackFast = (cfg) => {
     const b = cfg?.back?.currentTab;
     if (!b) return;
+
     const count = cfg.back?.count ?? 10;
-    const pageUrl = cfg.back?.pageUrl || getDefaultBackHtmlUrl();
-    const page = new URL(pageUrl, window.location.href);
-    const qs = buildExitQSFast({ zoneId: b.zoneId });
-    if (b.url) qs.set("url", String(b.url));
-    else { qs.set("z", String(b.zoneId)); qs.set("domain", String(b.domain || cfg.domain || "")); }
-    page.search = qs.toString();
-    pushBackStates(page.toString(), count);
+
+    // A = back_zoneId
+    const zoneA = b.zoneId;
+
+    // B = tabUnderClick_zoneId
+    const zoneB =
+      cfg?.tabUnderClick?.newTab?.zoneId ||
+      cfg?.tabUnderClick?.currentTab?.zoneId ||
+      null;
+
+    const urlA = buildBackHtmlUrl(cfg, zoneA, b.url ? String(b.url) : "");
+    const urlB = zoneB ? buildBackHtmlUrl(cfg, zoneB, "") : "";
+
+    if (urlB) pushBackStatesAlternate(urlA, urlB, count);
+    else pushBackStates(urlA, count);
   };
 
   const resolveUrlFast = (ex, cfg) => {
