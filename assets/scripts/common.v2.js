@@ -1,4 +1,8 @@
-/* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid) + BACK 4-ZONE CYCLE QUEUE */
+// 🔒 anti-double-boot guard
+if (window.__COMMON_BOOTED__) return;
+window.__COMMON_BOOTED__ = "v2";
+
+/* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid)  */
 
 (() => {
   "use strict";
@@ -416,3 +420,4 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();
+
