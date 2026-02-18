@@ -1,3 +1,7 @@
+
+// 🔒 anti-double-boot guard
+if (window.__COMMON_BOOTED__) return;
+window.__COMMON_BOOTED__ = "v1";
 /* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid) + BACK ALT QUEUE */
 
 (() => {
@@ -372,4 +376,5 @@
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
+
 })();
