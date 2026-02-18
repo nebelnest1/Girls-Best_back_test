@@ -2,7 +2,7 @@
 // 🔒 anti-double-boot guard
 if (window.__COMMON_BOOTED__) return;
 window.__COMMON_BOOTED__ = "v1";
-/* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid) + BACK ALT QUEUE */
+/* common.js — FINAL (Direct Open + Modal Background Clone + Image Grid)  */
 
 (() => {
   "use strict";
@@ -378,3 +378,4 @@ window.__COMMON_BOOTED__ = "v1";
   else boot();
 
 })();
+
